@@ -80,7 +80,7 @@ func (s *URLService) CreateShortURL(ctx context.Context, userID uuid.UUID, longU
 		return nil, err
 	}
 
-	url.ShortURL = fmt.Sprintf("%surls/%s", s.urlPrefix, url.ShortURL)
+	url.ShortURL = fmt.Sprintf("%s/urls/%s", s.urlPrefix, url.ShortURL)
 	return url, nil
 }
 

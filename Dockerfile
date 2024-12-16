@@ -1,40 +1,35 @@
-FROM golang:1.23-alpine AS base
+# Stage 1: Build the Go application
+FROM golang:1.23-alpine AS builder
 
-# Add essential build tools
-RUN apk add --no-cache gcc musl-dev make git
-
+# Set the Current Working Directory inside the container
 WORKDIR /app
 
-# Copy dependency files
+# Copy go mod and sum files
 COPY go.mod go.sum ./
+
+# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
 RUN go mod download
 
-# Development stage
-FROM base AS development
-
-# Install Air for hot reload
-RUN go install github.com/air-verse/air@latest
-
-# Copy the entire project
+# Copy the source from the current directory to the Working Directory inside the container
 COPY . .
 
-# Command to run Air
-CMD ["air", "-c", ".air.toml"]
+# Build the Go app
+RUN go build -o main .
 
-# Builder stage
-FROM base AS builder
+# Stage 2: Run the Go application
+FROM alpine:latest
 
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/api
+# Set the Current Working Directory inside the container
+WORKDIR /root/
 
-# Production stage
-FROM alpine:3.18 AS production
-
-RUN apk --no-cache add ca-certificates tzdata
-
-WORKDIR /app
-
+# Copy the Pre-built binary file from the previous stage
 COPY --from=builder /app/main .
-COPY .env.prod .
 
+COPY .env.dev .
+
+# Expose port 8080 to the outside world
+EXPOSE 8080
+
+# Command to run the executable
 CMD ["./main"]
+
